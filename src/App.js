@@ -80,6 +80,7 @@ const App = (props) => {
   const [photosToModerate, setPhotosToModerate] = useState({});
   const [mapLocation, setMapLocation] = useState(new MapLocation());
   const [dbStats, setDbStats] = useState();
+  const [stats, setStats] = useState();
   const [firebaseConfig, setFirebaseConfig] = useState();
   const [dialogTitle, setDialogTitle] = useState("");
   const [dialogContentText, setDialogContentText] = useState("");
@@ -95,7 +96,6 @@ const App = (props) => {
   let unregisterPublishedPhotosRT = useRef();
   let unregisterPhotosToModerate = useRef();
   let unregisterOwnPhotos = useRef();
-  let stats = useRef({});
   let domRefInput = useRef();
   let userChecked = useRef(false);
 
@@ -161,7 +161,7 @@ const App = (props) => {
     props.newVersionAvailable.then(() => setNewVersionAvailable(true));
     prevLocationRef.current = location;
 
-    stats.current = config.getStats(geojson, dbStats);
+    setStats(config.getStats(geojson, dbStats))
 
     let { photoId, mapLocation } = extractPathnameParams();
     setMapLocation(mapLocation);
@@ -204,9 +204,12 @@ const App = (props) => {
   }, [props.user, history ]);
 
   useEffect(() => {
-    // didUpdate
-    stats.current = config.getStats(geojson, dbStats);
+    setStats(config.getStats(geojson, dbStats));
+  }, [dbStats, geojson]);
 
+
+  useEffect(() => {
+    // didUpdate
     if (prevLocationRef.current !== location) {
       prevLocationRef.current = location;
       gtagPageView(location.pathname);
