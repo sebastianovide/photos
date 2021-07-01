@@ -97,6 +97,8 @@ const App = (props) => {
   let unregisterOwnPhotos = useRef();
   let stats = useRef({});
   let domRefInput = useRef();
+  let userChecked = useRef(false);
+
   const VISIBILITY_REGEX = new RegExp(
     "(^/@|^/$|^" +
       config.PAGES.displayPhoto.path +
@@ -164,20 +166,9 @@ const App = (props) => {
     let { photoId, mapLocation } = extractPathnameParams();
     setMapLocation(mapLocation);
     someInits(photoId);
-
+    
     unregisterAuthObserver.current = authFirebase.onAuthStateChanged(
-      (firebaseUser) => {
-        // lets start fresh if the user logged out
-        if (user && !firebaseUser) {
-          gtagEvent("Signed out", "User");
-
-          history.push(config.PAGES.map.path);
-          window.location.reload();
-        }
-
-        // the user had logged in.
-        dispatch({ type: "SET_USER", payload: { user: firebaseUser } });
-      }
+      (firebaseUser) => dispatch({ type: "SET_USER", payload: { user: firebaseUser } })
     );
 
     unregisterConfigObserver.current = dbFirebase.configObserver(
@@ -190,14 +181,27 @@ const App = (props) => {
       unregisterConnectionObserver.current();
       unregisterConfigObserver.current();
       unregisterPhotosToModerate.current &&
-        unregisterPhotosToModerate.current();
+      unregisterPhotosToModerate.current();
       unregisterOwnPhotos.current && unregisterOwnPhotos.current();
       unregisterPublishedPhotosRT.current &&
-        unregisterPublishedPhotosRT.current();
+      unregisterPublishedPhotosRT.current();
       await dbFirebase.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    console.log(props.user);
+    // lets start fresh if the user logged out
+    if (userChecked.current && !props.user) {
+      gtagEvent("Signed out", "User");
+
+      history.push(config.PAGES.map.path);
+      window.location.reload();
+    } else {
+      userChecked.current = true;
+    }
+  }, [props.user, history ]);
 
   useEffect(() => {
     // didUpdate
