@@ -154,6 +154,12 @@ const App = (props) => {
     return { photoId, mapLocation };
   };
 
+  const unexpectedErrorFn = (error) => {
+    console.error(error);
+    alert(`Let our dev about this error: ${error}`);
+    window.location.reload();
+  }
+
   const prevLocationRef = useRef();
   useEffect(() => {
     // didMount
@@ -269,11 +275,7 @@ const App = (props) => {
         addFeature,
         modifyFeature,
         removeFeature,
-        (error) => {
-          console.log(error);
-          alert(error);
-          window.location.reload();
-        }
+        unexpectedErrorFn
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,11 +308,7 @@ const App = (props) => {
       addFeature,
       modifyFeature,
       removeFeature,
-      (error) => {
-        console.log(error);
-        alert(error);
-        window.location.reload();
-      },
+      unexpectedErrorFn,
       calculateLastUpdate()
     );
   };
