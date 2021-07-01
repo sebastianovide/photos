@@ -165,7 +165,42 @@ const App = (props) => {
 
     let { photoId, mapLocation } = extractPathnameParams();
     setMapLocation(mapLocation);
-    someInits(photoId);
+    unregisterConnectionObserver.current = dbFirebase.onConnectionStateChanged(
+      (online) => dispatch({ type: "SET_ONLINE", payload: { online } })
+    );
+
+    dbFirebase.fetchStats().then((dbStats) => {
+      console.log(dbStats);
+      setUsersLeaderboard(dbStats.users);
+      setDbStats(dbStats);
+
+      return dbStats;
+    });
+
+    // when photoId is defined (when acceding the app with photoid query string), need to get the photo info.
+    fetchPhotoIfUndefined(photoId).then( () => {
+      // If the selectedFeature is not null, it means that we were able to retrieve a photo from the URL and so we landed
+      // into the photoId.
+      setPhotoAccessedByUrl(!!selectedFeature);
+
+      gtagPageView(location.pathname);
+    });
+
+    // Get the photos from the cache first.
+    (async () => {
+      const featuresDict = (await localforage.getItem("featuresDict")) || {};
+      if (!_.isEmpty(featuresDict)) {
+        dispatch({ type: "SET_FEATURES", payload: { featuresDict } });
+      } else {
+        fetchPhotos();
+      }
+    })();
+
+    registerPublishedPhotosRT();
+
+    if (!welcomeShown) {
+      history.push(config.PAGES.welcome.path);
+    }
     
     unregisterAuthObserver.current = authFirebase.onAuthStateChanged(
       (firebaseUser) => dispatch({ type: "SET_USER", payload: { user: firebaseUser } })
@@ -191,9 +226,9 @@ const App = (props) => {
   }, []);
 
   useEffect(() => {
-    console.log(props.user);
+    console.log(user);
     // lets start fresh if the user logged out
-    if (userChecked.current && !props.user) {
+    if (userChecked.current && !user) {
       gtagEvent("Signed out", "User");
 
       history.push(config.PAGES.map.path);
@@ -201,7 +236,7 @@ const App = (props) => {
     } else {
       userChecked.current = true;
     }
-  }, [props.user, history ]);
+  }, [user, history ]);
 
   useEffect(() => {
     setStats(config.getStats(geojson, dbStats));
@@ -257,43 +292,6 @@ const App = (props) => {
   const removeFeature = (photo) => {
     console.debug(`removing ${photo.id}`);
     dispatch({ type: "DELETE_FEATURE", payload: { photo } });
-  };
-
-  const someInits = async (photoId) => {
-    unregisterConnectionObserver.current = dbFirebase.onConnectionStateChanged(
-      (online) => dispatch({ type: "SET_ONLINE", payload: { online } })
-    );
-
-    dbFirebase.fetchStats().then((dbStats) => {
-      console.log(dbStats);
-      setUsersLeaderboard(dbStats.users);
-      setDbStats(dbStats);
-
-      return dbStats;
-    });
-
-    // when photoId is defined (when acceding the app with photoid query string), need to get the photo info.
-    fetchPhotoIfUndefined(photoId).then(async () => {
-      // If the selectedFeature is not null, it means that we were able to retrieve a photo from the URL and so we landed
-      // into the photoId.
-      setPhotoAccessedByUrl(!!selectedFeature);
-
-      gtagPageView(location.pathname);
-    });
-
-    // Get the photos from the cache first.
-    const featuresDict = (await localforage.getItem("featuresDict")) || {};
-    if (!_.isEmpty(featuresDict)) {
-      dispatch({ type: "SET_FEATURES", payload: { featuresDict } });
-    } else {
-      await fetchPhotos();
-    }
-
-    registerPublishedPhotosRT();
-
-    if (!welcomeShown) {
-      history.push(config.PAGES.welcome.path);
-    }
   };
 
   const registerPublishedPhotosRT = async () => {
